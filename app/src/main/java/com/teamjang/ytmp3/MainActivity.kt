@@ -12,6 +12,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.Environment
 import android.os.PowerManager
+import android.provider.DocumentsContract
 import android.view.WindowManager
 import android.widget.*
 import com.yausername.ffmpeg.FFmpeg
@@ -38,6 +39,7 @@ class MainActivity : Activity() {
     private lateinit var bar: ProgressBar
     private lateinit var log: TextView
     private lateinit var logScroll: ScrollView
+    private lateinit var folderText: TextView
 
     private val outDir: File
         get() = File(
@@ -65,6 +67,13 @@ class MainActivity : Activity() {
             listOf("128 kbps", "192 kbps", "320 kbps")
         )
         quality.setSelection(prefs().getInt("q", 1))
+
+        folderText = findViewById(R.id.folder)
+        findViewById<Button>(R.id.btnFolder).setOnClickListener { pickFolder() }
+        findViewById<Button>(R.id.btnFolderReset).setOnClickListener {
+            prefs().edit().remove("tree").apply(); showFolder()
+        }
+        showFolder()
 
         findViewById<Button>(R.id.btnPaste).setOnClickListener { paste() }
         findViewById<Button>(R.id.btnClear).setOnClickListener { urls.setText("") }
@@ -118,6 +127,64 @@ class MainActivity : Activity() {
 
     private fun prefs() = getSharedPreferences("ytmp3", Context.MODE_PRIVATE)
 
+    // ---------- 저장 폴더 ----------
+    private val REQ_FOLDER = 10
+
+    private fun pickFolder() {
+        val i = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).addFlags(
+            Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION or
+                Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+        )
+        try { startActivityForResult(i, REQ_FOLDER) } catch (e: Exception) { toast("폴더 선택을 열 수 없습니다") }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode != REQ_FOLDER || resultCode != RESULT_OK) return
+        val uri = data?.data ?: return
+        try {
+            contentResolver.takePersistableUriPermission(
+                uri, Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+            )
+        } catch (e: Exception) { }
+        prefs().edit().putString("tree", uri.toString()).apply()
+        showFolder()
+        appendLog("저장 폴더 변경: " + folderLabel())
+    }
+
+    private fun treeUri(): Uri? {
+        val s = prefs().getString("tree", null) ?: return null
+        val u = Uri.parse(s)
+        val ok = contentResolver.persistedUriPermissions.any { it.uri == u && it.isWritePermission }
+        return if (ok) u else null
+    }
+
+    private fun folderLabel(): String {
+        val u = treeUri() ?: return "Download/SH MP3 (기본)"
+        val id = try { DocumentsContract.getTreeDocumentId(u) } catch (e: Exception) { return u.toString() }
+        val path = id.substringAfter(':', id)
+        val vol = id.substringBefore(':', "")
+        val root = if (vol == "primary") "내장 메모리" else vol
+        return if (path.isEmpty()) root else "$root/$path"
+    }
+
+    private fun showFolder() { folderText.text = "저장: " + folderLabel() }
+
+    /** 임시 폴더의 파일을 사용자가 고른 폴더로 옮김. 성공하면 true */
+    private fun moveToTree(tree: Uri, f: File): Boolean = try {
+        val parent = DocumentsContract.buildDocumentUriUsingTree(
+            tree, DocumentsContract.getTreeDocumentId(tree)
+        )
+        val dst = DocumentsContract.createDocument(contentResolver, parent, "audio/mpeg", f.name)
+            ?: throw IllegalStateException("파일을 만들 수 없음")
+        contentResolver.openOutputStream(dst)!!.use { out -> f.inputStream().use { it.copyTo(out) } }
+        f.delete()
+        true
+    } catch (e: Exception) {
+        appendLog("✖ 폴더로 옮기기 실패(${f.name}): ${e.message}")
+        false
+    }
+
     private fun paste() {
         val cm = getSystemService(CLIPBOARD_SERVICE) as ClipboardManager
         val t = cm.primaryClip?.getItemAt(0)?.coerceToText(this)?.toString()?.trim()
@@ -157,7 +224,14 @@ class MainActivity : Activity() {
         prefs().edit().putInt("q", quality.selectedItemPosition).apply()
         val wantPlaylist = playlist.isChecked
         val wantMeta = meta.isChecked
-        val dir = outDir.apply { mkdirs() }
+        val tree = treeUri()
+        if (tree == null && prefs().getString("tree", null) != null) {
+            appendLog("선택한 폴더 권한이 없어져 기본 폴더(Download/SH MP3)에 저장합니다.")
+            prefs().edit().remove("tree").apply(); showFolder()
+        }
+        val dir = if (tree != null) File(cacheDir, "dl").apply {
+            deleteRecursively(); mkdirs()
+        } else outDir.apply { mkdirs() }
 
         stopRequested = false
         setBusy(true)
@@ -198,6 +272,12 @@ class MainActivity : Activity() {
                         }
                     }
                 }
+                if (tree != null) {
+                    // 변환이 끝난 mp3만 골라 사용자 폴더로 이동
+                    val done = dir.listFiles { f -> f.name.endsWith(".mp3", true) }.orEmpty()
+                    for (f in done) if (!moveToTree(tree, f)) fail++
+                    dir.listFiles()?.forEach { it.delete() }
+                }
                 if (stopRequested) break
                 result.onSuccess { ok++ }.onFailure { e ->
                     fail++
@@ -206,7 +286,7 @@ class MainActivity : Activity() {
                         .joinToString("\n").take(500))
                 }
             }
-            if (saved.isNotEmpty()) {
+            if (saved.isNotEmpty() && tree == null) {
                 MediaScannerConnection.scanFile(this@MainActivity, saved.toTypedArray(), null, null)
             }
             if (wl.isHeld) wl.release()

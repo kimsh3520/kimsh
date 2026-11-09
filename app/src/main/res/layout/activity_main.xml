@@ -31,6 +31,17 @@
         android:text="제목·앨범아트 넣기" />
 
     <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <TextView android:id="@+id/folder" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:maxLines="2" android:ellipsize="start"
+            android:text="저장: Download/SH MP3" />
+        <Button android:id="@+id/btnFolder" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="폴더 선택" />
+        <Button android:id="@+id/btnFolderReset" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="기본" />
+    </LinearLayout>
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
         android:orientation="horizontal">
         <Button android:id="@+id/btnGo" android:layout_width="0dp" android:layout_weight="1"
             android:layout_height="wrap_content" android:text="▶ 다운로드" />
@@ -47,7 +58,7 @@
         android:layout_width="match_parent" android:layout_height="wrap_content" android:max="1000" />
 
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_marginTop="6dp" android:text="기록  (저장 위치: Download/SH MP3)" />
+        android:layout_marginTop="6dp" android:text="기록" />
     <ScrollView android:id="@+id/logScroll" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:background="#F2F2F2">
         <TextView android:id="@+id/log" android:layout_width="match_parent"
