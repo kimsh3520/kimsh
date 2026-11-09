@@ -1,0 +1,19 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 돋보기: 렌즈 -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M50,34a14,14 0 1,0 0.1,0z"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="5" />
+    <!-- 돋보기: 손잡이 -->
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M60,58L74,72"
+        android:strokeColor="#FFFFFF"
+        android:strokeLineCap="round"
+        android:strokeWidth="7" />
+</vector>
