@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="match_parent"
+    android:orientation="vertical" android:padding="12dp">
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:text="유튜브 주소 (여러 개는 한 줄에 하나씩)" />
+
+    <EditText android:id="@+id/urls"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:minLines="3" android:maxLines="6" android:gravity="top"
+        android:inputType="textMultiLine|textUri" android:hint="https://youtu.be/..." />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal" android:gravity="center_vertical">
+        <Button android:id="@+id/btnPaste" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="붙여넣기" />
+        <Button android:id="@+id/btnClear" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="지우기" />
+        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+            android:layout_marginStart="12dp" android:text="음질" />
+        <Spinner android:id="@+id/quality" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
+    <CheckBox android:id="@+id/playlist" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:checked="true"
+        android:text="재생목록이면 전체 받기 (믹스는 한 곡만)" />
+    <CheckBox android:id="@+id/meta" android:layout_width="wrap_content"
+        android:layout_height="wrap_content" android:checked="true"
+        android:text="제목·앨범아트 넣기" />
+
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <Button android:id="@+id/btnGo" android:layout_width="0dp" android:layout_weight="1"
+            android:layout_height="wrap_content" android:text="▶ 다운로드" />
+        <Button android:id="@+id/btnStop" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="■ 중지" android:enabled="false" />
+        <Button android:id="@+id/btnUpdate" android:layout_width="wrap_content"
+            android:layout_height="wrap_content" android:text="업데이트" />
+    </LinearLayout>
+
+    <TextView android:id="@+id/status" android:layout_width="match_parent"
+        android:layout_height="wrap_content" android:layout_marginTop="6dp"
+        android:text="준비 중..." android:maxLines="2" />
+    <ProgressBar android:id="@+id/bar" style="@android:style/Widget.Material.ProgressBar.Horizontal"
+        android:layout_width="match_parent" android:layout_height="wrap_content" android:max="1000" />
+
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+        android:layout_marginTop="6dp" android:text="기록  (저장 위치: Download/YT MP3)" />
+    <ScrollView android:id="@+id/logScroll" android:layout_width="match_parent"
+        android:layout_height="0dp" android:layout_weight="1" android:background="#F2F2F2">
+        <TextView android:id="@+id/log" android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:padding="6dp"
+            android:textIsSelectable="true" android:textSize="12sp" />
+    </ScrollView>
+</LinearLayout>

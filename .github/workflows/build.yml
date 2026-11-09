@@ -1,0 +1,36 @@
+name: Build APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.10.2
+      - name: Build
+        run: gradle --no-daemon assembleRelease
+      - name: Rename APK
+        run: cp app/build/outputs/apk/release/app-release.apk YTMp3-${{ github.run_number }}.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YTMp3-apk
+          path: YTMp3-*.apk
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: 유튜브 MP3 앱 (빌드 ${{ github.run_number }})
+          files: YTMp3-*.apk
