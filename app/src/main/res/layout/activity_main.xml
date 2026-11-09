@@ -47,7 +47,7 @@
         android:layout_width="match_parent" android:layout_height="wrap_content" android:max="1000" />
 
     <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
-        android:layout_marginTop="6dp" android:text="기록  (저장 위치: Download/YT MP3)" />
+        android:layout_marginTop="6dp" android:text="기록  (저장 위치: Download/SH MP3)" />
     <ScrollView android:id="@+id/logScroll" android:layout_width="match_parent"
         android:layout_height="0dp" android:layout_weight="1" android:background="#F2F2F2">
         <TextView android:id="@+id/log" android:layout_width="match_parent"

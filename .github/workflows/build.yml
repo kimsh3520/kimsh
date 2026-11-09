@@ -23,14 +23,14 @@ jobs:
       - name: Build
         run: gradle --no-daemon assembleRelease
       - name: Rename APK
-        run: cp app/build/outputs/apk/release/app-release.apk YTMp3-${{ github.run_number }}.apk
+        run: cp app/build/outputs/apk/release/app-release.apk SH-MP3-${{ github.run_number }}.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: YTMp3-apk
-          path: YTMp3-*.apk
+          name: SH-MP3-apk
+          path: SH-MP3-*.apk
       - name: Publish release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: build-${{ github.run_number }}
-          name: 유튜브 MP3 앱 (빌드 ${{ github.run_number }})
-          files: YTMp3-*.apk
+          name: SH MP3 앱 (빌드 ${{ github.run_number }})
+          files: SH-MP3-*.apk

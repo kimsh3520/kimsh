@@ -7,7 +7,7 @@
         android:maxSdkVersion="28" />
 
     <application
-        android:label="유튜브 MP3"
+        android:label="SH MP3"
         android:icon="@mipmap/ic_launcher"
         android:extractNativeLibs="true"
         android:requestLegacyExternalStorage="true"

@@ -42,7 +42,7 @@ class MainActivity : Activity() {
     private val outDir: File
         get() = File(
             Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-            "YT MP3"
+            "SH MP3"
         )
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,7 +94,7 @@ class MainActivity : Activity() {
                 status.text = "엔진 최신 버전 확인 중..."
                 withContext(Dispatchers.IO) { doUpdate(quiet = true) }
                 status.text = "준비 완료"
-                appendLog("준비 완료. 유튜브 앱에서 [공유 → 유튜브 MP3]를 누르거나 주소를 붙여넣으세요.")
+                appendLog("준비 완료. 유튜브 앱에서 [공유 → SH MP3]를 누르거나 주소를 붙여넣으세요.")
             }
             setBusy(false)
             handleShare(intent)
