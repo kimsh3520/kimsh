@@ -156,6 +156,26 @@
   @keyframes sp { to { transform: rotate(360deg); } }
   #loading div div { font-size: 14px; color: #334155; text-align: center; }
   #file { display: none; }
+  #view, #view canvas { -webkit-touch-callout: none; }
+
+  /* search result info */
+  #searchinfo { display: none; margin: -2px 12px 8px; font-size: 12px; color: var(--text-dim); }
+  #searchinfo.show { display: block; }
+  .row.hit .nm { color: #b45309; }
+  .dactions #searchSelect { background: #fff1e6; color: #c2410c; font-weight: 600; }
+
+  /* confirm dialog */
+  #confirm { position: fixed; inset: 0; z-index: 20; display: none; align-items: center; justify-content: center;
+    padding: 24px; background: rgba(15,23,42,.45); }
+  #confirm.show { display: flex; }
+  #confirm .card { width: min(340px, 100%); background: #fff; border-radius: 18px; padding: 22px 20px 14px;
+    box-shadow: 0 12px 40px rgba(15,23,42,.3); }
+  #confirm h4 { margin: 0 0 10px; font-size: 17px; }
+  #confirm p { margin: 0 0 18px; font-size: 14px; line-height: 1.55; color: #334155; white-space: pre-line; word-break: keep-all; }
+  #confirm .btns { display: flex; gap: 8px; }
+  #confirm .btns button { flex: 1; height: 46px; border-radius: 12px; font-size: 15px; font-weight: 600; }
+  #cfCancel { background: #f1f5f9; color: #334155; }
+  #cfOk { background: var(--accent); color: #fff; }
 </style>
 </head>
 <body>
@@ -220,7 +240,8 @@
   <div class="dhead"><b>부품 목록<small id="partcount"></small></b>
     <button id="drawerClose" aria-label="닫기"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
   <input id="search" type="search" placeholder="부품 이름 검색…">
-  <div class="dactions"><button id="expandAll">모두 펼치기</button><button id="collapseAll">모두 접기</button><button id="treeShowAll">모두 보이기</button></div>
+  <div id="searchinfo"></div>
+  <div class="dactions"><button id="searchSelect" style="display:none">결과 모두 선택</button><button id="expandAll">모두 펼치기</button><button id="collapseAll">모두 접기</button><button id="treeShowAll">모두 보이기</button></div>
   <div id="tree"></div>
 </aside>
 
@@ -244,6 +265,14 @@
   <button class="item" id="miBg">배경 밝게 / 어둡게</button>
   <button class="item" id="miHelp">조작 방법</button>
   <button class="item" id="miAbout">정보</button>
+</div>
+
+<div id="confirm">
+  <div class="card">
+    <h4 id="cfTitle"></h4>
+    <p id="cfMsg"></p>
+    <div class="btns"><button id="cfCancel">취소</button><button id="cfOk">확인</button></div>
+  </div>
 </div>
 
 <input type="file" id="file" accept=".pdf,.u3d,application/pdf">

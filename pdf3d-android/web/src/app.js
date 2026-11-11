@@ -6,7 +6,7 @@ import logoUrl from "../logo.png";
 
 const $ = (id) => document.getElementById(id);
 const SEL_COLOR = new THREE.Color("#ff6a00");
-const APP_VERSION = "1.0";
+const APP_VERSION = "1.1";
 
 // ------------------------------------------------------------------ three.js setup
 const view = $("view");
@@ -373,21 +373,107 @@ $("secflip").onclick = () => { clipFlip = !clipFlip; updateClip(); };
 // ------------------------------------------------------------------ picking (tap vs drag)
 const raycaster = new THREE.Raycaster();
 const ndc = new THREE.Vector2();
-let down = null, pointers = 0;
+const LONG_PRESS_MS = 550;
+let down = null, pointers = 0, pressTimer = 0;
+function cancelLongPress() { clearTimeout(pressTimer); pressTimer = 0; }
 renderer.domElement.addEventListener("pointerdown", (e) => {
   pointers++;
-  down = pointers === 1 ? { x: e.clientX, y: e.clientY, t: performance.now() } : null;
+  cancelLongPress();
+  down = pointers === 1 ? { x: e.clientX, y: e.clientY, t: performance.now(), long: false } : null;
+  if (down) {
+    const d = down;
+    pressTimer = setTimeout(() => {
+      pressTimer = 0;
+      if (down !== d) return;
+      d.long = true; // the release that follows is not a tap
+      onLongPress(d.x, d.y);
+    }, LONG_PRESS_MS);
+  }
 });
-renderer.domElement.addEventListener("pointercancel", () => { pointers = Math.max(0, pointers - 1); down = null; });
+renderer.domElement.addEventListener("pointermove", (e) => {
+  if (down && !down.long && Math.hypot(e.clientX - down.x, e.clientY - down.y) > 10) cancelLongPress();
+});
+renderer.domElement.addEventListener("pointercancel", () => { pointers = Math.max(0, pointers - 1); down = null; cancelLongPress(); });
 renderer.domElement.addEventListener("pointerup", (e) => {
   pointers = Math.max(0, pointers - 1);
+  cancelLongPress();
   if (!down) return;
-  const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-  const dt = performance.now() - down.t;
+  const d = down;
   down = null;
-  if (moved > 10 || dt > 600) return;
+  if (d.long) return;
+  const moved = Math.hypot(e.clientX - d.x, e.clientY - d.y);
+  const dt = performance.now() - d.t;
+  if (moved > 10 || dt > LONG_PRESS_MS) return;
   onTap(e.clientX, e.clientY);
 });
+renderer.domElement.addEventListener("contextmenu", (e) => e.preventDefault());
+
+// long press on a part: select it and ask whether to hide everything else
+async function onLongPress(x, y) {
+  if (!parts.length || measureMode) return;
+  const hit = pick(x, y);
+  if (!hit) return;
+  const idx = hit.object.userData.idx;
+  try { navigator.vibrate && navigator.vibrate(25); } catch (e) { /* no vibration */ }
+  // in multi-select mode keep the others selected; otherwise just this part
+  const keep = multiMode ? new Set([...selected, idx]) : new Set([idx]);
+  setSelection(keep, idx, true);
+  const others = parts.filter((p, i) => !keep.has(i) && p.visible).length;
+  const hidden = parts.filter((p) => !p.visible).length;
+  const label = keep.size === 1 ? `'${shortName(parts[idx].part.path)}'` : `선택한 ${keep.size}개`;
+  if (others > 0) {
+    const ok = await confirmBox("이 부품만 남기기",
+      `${label}만 남기고\n나머지 부품 ${others}개를 숨길까요?`, "숨기기");
+    if (ok) {
+      applyVisibility((i) => keep.has(i));
+      frame(visibleBox());
+      toast("숨긴 부품은 [모두 보이기] 또는 다시 길게 눌러 되돌릴 수 있습니다", 3000);
+    }
+  } else if (hidden > 0) {
+    const ok = await confirmBox("모두 보이기", `숨긴 부품 ${hidden}개를\n다시 모두 보일까요?`, "모두 보이기");
+    if (ok) { applyVisibility(() => true); frame(visibleBox()); }
+  }
+}
+
+// in-page confirm dialog (Promise<boolean>)
+function confirmBox(title, msg, okLabel) {
+  return new Promise((resolve) => {
+    const box = $("confirm");
+    $("cfTitle").textContent = title;
+    $("cfMsg").textContent = msg;
+    $("cfOk").textContent = okLabel || "확인";
+    box.classList.add("show");
+    // The dialog opens while the finger is still down (long press). Lifting it
+    // produces a click right where the finger was, which could land on the
+    // backdrop or a button. Only accept input once that finger has been lifted.
+    let armed = !pressFingerDown();
+    let armTimer = 0;
+    const arm = () => { clearTimeout(armTimer); armTimer = setTimeout(() => { armed = true; }, 250); };
+    const onLift = () => arm();
+    if (!armed) {
+      window.addEventListener("pointerup", onLift, true);
+      window.addEventListener("touchend", onLift, true);
+      window.addEventListener("pointercancel", onLift, true);
+    }
+    const done = (v) => {
+      box.classList.remove("show");
+      $("cfOk").onclick = $("cfCancel").onclick = box.onclick = null;
+      window.removeEventListener("pointerup", onLift, true);
+      window.removeEventListener("touchend", onLift, true);
+      window.removeEventListener("pointercancel", onLift, true);
+      clearTimeout(armTimer);
+      confirmClose = null;
+      resolve(v);
+    };
+    confirmClose = () => done(false);
+    $("cfOk").onclick = (e) => { e.stopPropagation(); if (armed) done(true); };
+    $("cfCancel").onclick = (e) => { e.stopPropagation(); if (armed) done(false); };
+    box.onclick = (e) => { if (armed && e.target === box) done(false); };
+  });
+}
+let confirmClose = null;
+// true while the finger that started a long press is still on the screen
+function pressFingerDown() { return !!(down && down.long); }
 
 function pick(x, y) {
   const r = renderer.domElement.getBoundingClientRect();
@@ -575,6 +661,7 @@ function buildTree() {
   const frag = document.createDocumentFragment();
   for (const c of treeRoot.children.values()) renderNode(c, 0, frag, true);
   host.appendChild(frag);
+  runSearch(); // keep a search typed before a new file was opened
 }
 
 function renderNode(n, depth, container, open) {
@@ -666,19 +753,45 @@ function markTree(focus, scroll) {
   if (scroll && focusRow) focusRow.scrollIntoView({ block: "center" });
 }
 
-$("search").oninput = () => {
+function runSearch() {
   const q = $("search").value.trim().toLowerCase();
+  let hits = 0;
+  // the tree root has no row and no name: only real rows are matched
   const walk = (n) => {
-    let match = !q || n.name.toLowerCase().includes(q);
+    const match = !!n.el && (!q || n.name.toLowerCase().includes(q));
     let kidMatch = false;
     for (const c of n.children.values()) kidMatch = walk(c) || kidMatch;
     if (n.el) {
       n.el.style.display = match || kidMatch ? "" : "none";
+      n.el.classList.toggle("hit", !!q && match);
+      if (q && match) hits++;
       if (q && kidMatch) n.el.classList.add("open");
     }
     return match || kidMatch;
   };
   if (treeRoot) walk(treeRoot);
+  const info = $("searchinfo");
+  info.textContent = q ? (hits ? `${hits}개 일치 · 이름을 탭하면 선택됩니다` : "일치하는 부품이 없습니다") : "";
+  info.classList.toggle("show", !!q);
+  $("searchSelect").style.display = q && hits ? "" : "none";
+  return hits;
+}
+// Korean IME: also re-run when the composition ends
+$("search").addEventListener("input", runSearch);
+$("search").addEventListener("compositionend", runSearch);
+$("search").addEventListener("keydown", (e) => { if (e.key === "Enter") $("search").blur(); });
+$("searchSelect").onclick = () => {
+  // select every leaf part whose own row matches the search
+  const ids = new Set();
+  const walk = (n) => {
+    if (n.el && n.el.classList.contains("hit")) n.leaves.forEach((i) => parts[i].visible && ids.add(i));
+    for (const c of n.children.values()) walk(c);
+  };
+  if (treeRoot) walk(treeRoot);
+  if (!ids.size) return;
+  setSelection(ids, [...ids][0]);
+  closeDrawer();
+  toast(`검색 결과 ${ids.size}개를 선택했습니다`);
 };
 $("expandAll").onclick = () => document.querySelectorAll("#tree .row").forEach((r) => r.querySelector(".tw svg") && r.classList.add("open"));
 $("collapseAll").onclick = () => document.querySelectorAll("#tree .row").forEach((r) => r.classList.remove("open"));
@@ -720,6 +833,8 @@ $("miHelp").onclick = () => {
   alertBox("조작 방법",
     "• 한 손가락 드래그: 회전\n• 두 손가락 벌리기/모으기: 확대·축소\n• 두 손가락 드래그: 이동\n" +
     "• 부품 탭: 주황색으로 강조 + 부품 목록에 표시\n• 빈 곳 탭: 선택 해제\n" +
+    "• 부품 길게 누르기: 이 부품만 남기고 숨길지 확인 (다시 길게 누르면 모두 보이기)\n" +
+    "• 부품 목록 검색: 이름 일부 입력 → 일치하는 부품만 표시, [결과 모두 선택] 가능\n" +
     "• [여러 개 선택]을 켜면 탭할 때마다 추가/해제\n• 부품 목록에서 이름 두 번 탭: 그 부품으로 확대\n" +
     "• [단면]: X/Y/Z 선택 후 슬라이더로 위치 이동\n• [거리 측정]: 두 점을 차례로 탭 (mm)");
 };
@@ -734,6 +849,7 @@ function alertBox(title, text) {
 
 // ------------------------------------------------------------------ Android back button
 window.handleBack = function () {
+  if (confirmClose) { confirmClose(); return true; }
   if ($("sheet").classList.contains("show")) { closeSheet(); return true; }
   if ($("drawer").classList.contains("show")) { closeDrawer(); return true; }
   if (measureMode) { setMeasureMode(false); return true; }
