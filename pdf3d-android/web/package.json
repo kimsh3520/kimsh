@@ -1,0 +1,16 @@
+{
+  "name": "pdf3d-viewer-web",
+  "version": "1.0.0",
+  "description": "PDF 3D Viewer (Android) - viewer bundle",
+  "scripts": {
+    "build": "sh build-web.sh"
+  },
+  "dependencies": {
+    "esbuild": "^0.24.0",
+    "pako": "^2.1.0",
+    "playwright-core": "^1.65.0",
+    "three": "^0.170.0"
+  },
+  "private": true,
+  "type": "module"
+}

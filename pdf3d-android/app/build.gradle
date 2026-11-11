@@ -1,0 +1,42 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'com.sfe.pdf3dviewer'
+    compileSdk 34
+
+    defaultConfig {
+        applicationId "com.sfe.pdf3dviewer"
+        minSdk 24
+        targetSdk 34
+        versionCode 1
+        versionName "1.0"
+    }
+
+    // Fixed signing key kept in the project so every build can update the
+    // installed app (a new random debug key would force an uninstall).
+    signingConfigs {
+        release {
+            storeFile file('release.keystore')
+            storePassword 'pdf3dviewer'
+            keyAlias 'pdf3d'
+            keyPassword 'pdf3dviewer'
+        }
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            signingConfig signingConfigs.release
+        }
+        debug {
+            signingConfig signingConfigs.release
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+}
